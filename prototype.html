@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Планировщик задач Т-банка</title>
+    <style>
+        /* Стили CSS */
+
+        :root {
+            --primary-color: #FFDD2D; /* Основной цвет */
+            --primary-color-dark: #E6C824; /* Темный вариант основного цвета */
+            --background-color: #F9F9F9; /* Цвет фона */
+            --text-color: #333333; /* Цвет текста */
+            --button-text-color: #FFFFFF; /* Цвет текста на кнопках */
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        header, main {
+            width: 80%;
+            margin: 0 auto;
+        }
+
+        header h1 {
+            text-align: center;
+            padding: 20px 0;
+            color: var(--primary-color-dark);
+        }
+
+        .task-creator, .task-list {
+            margin: 20px 0;
+        }
+
+        .task-creator h2, .task-list h2 {
+            color: var(--primary-color-dark);
+        }
+
+        .task-creator form {
+            display: flex;
+            flex-direction: column;
+            background-color: #FFFFFF;
+            padding: 20px;
+            border: 1px solid #CCCCCC;
+            border-radius: 5px;
+        }
+
+        .task-creator input, .task-creator textarea, .task-creator select {
+            margin: 10px 0;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #CCCCCC;
+            border-radius: 3px;
+        }
+
+        .task-creator button {
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: var(--primary-color);
+            color: var(--button-text-color);
+            border: none;
+            border-radius: 3px;
+            transition: background-color 0.3s;
+        }
+
+        .task-creator button:hover {
+            background-color: var(--primary-color-dark);
+        }
+
+        .task-list table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #FFFFFF;
+            border: 1px solid #CCCCCC;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .task-list th, .task-list td {
+            border: 1px solid #CCCCCC;
+            padding: 10px;
+            text-align: left;
+        }
+
+        .task-list th {
+            background-color: var(--primary-color);
+            color: var(--button-text-color);
+        }
+
+        .action-buttons button {
+            margin-right: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+            background-color: var(--primary-color);
+            color: var(--button-text-color);
+            border: none;
+            border-radius: 3px;
+            transition: background-color 0.3s;
+        }
+
+        .action-buttons button:hover {
+            background-color: var(--primary-color-dark);
+        }
+
+        .status-buttons {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .status-buttons button {
+            margin: 2px 0;
+            padding: 5px;
+            font-size: 12px;
+        }
+
+        /* Цвета для различных статусов */
+        .status-new {
+            background-color: #E0E0E0;
+            color: #333333;
+        }
+
+        .status-in-progress {
+            background-color: #FFD700;
+            color: #333333;
+        }
+
+        .status-completed {
+            background-color: #90EE90;
+            color: #333333;
+        }
+
+        .status-postponed {
+            background-color: #ADD8E6;
+            color: #333333;
+        }
+
+        .status-cancelled {
+            background-color: #FFB6C1;
+            color: #333333;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Планировщик задач Т-банка</h1>
+    </header>
+
+    <main>
+        <section class="task-creator">
+            <h2>Добавить новую задачу</h2>
+            <form id="task-form">
+                <input type="text" id="task-title" placeholder="Название задачи" required>
+                <textarea id="task-desc" placeholder="Описание задачи"></textarea>
+                <label for="task-status">Статус задачи:</label>
+                <select id="task-status">
+                    <option value="new">Новая</option>
+                    <option value="in-progress">В процессе</option>
+                    <option value="completed">Выполнена</option>
+                    <option value="postponed">Отложена</option>
+                    <option value="cancelled">Отменена</option>
+                </select>
+                <button type="submit">Добавить задачу</button>
+            </form>
+        </section>
+
+        <section class="task-list">
+            <h2>Мои задачи</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Название</th>
+                        <th>Описание</th>
+                        <th>Статус</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody id="tasks-table">
+                    <!-- Задачи будут добавляться сюда динамически -->
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <script>
+        // JavaScript-код
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const taskForm = document.getElementById('task-form');
+            const tasksTable = document.getElementById('tasks-table');
+            let tasks = [];
+
+            // Функция для добавления задачи в таблицу
+            function addTaskToTable(task, index) {
+                const row = document.createElement('tr');
+
+                // Название задачи
+                const titleCell = document.createElement('td');
+                titleCell.textContent = task.title;
+                row.appendChild(titleCell);
+
+                // Описание задачи
+                const descCell = document.createElement('td');
+                descCell.textContent = task.description;
+                row.appendChild(descCell);
+
+                // Статус задачи
+                const statusCell = document.createElement('td');
+                statusCell.textContent = getStatusName(task.status);
+                statusCell.classList.add(`status-${task.status}`);
+                row.appendChild(statusCell);
+
+                // Действия
+                const actionsCell = document.createElement('td');
+                actionsCell.classList.add('action-buttons');
+
+                // Кнопка редактирования
+                const editButton = document.createElement('button');
+                editButton.textContent = 'Редактировать';
+                editButton.addEventListener('click', () => editTask(index));
+                actionsCell.appendChild(editButton);
+
+                // Кнопка удаления
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Удалить';
+                deleteButton.addEventListener('click', () => deleteTask(index));
+                actionsCell.appendChild(deleteButton);
+
+                // Блок кнопок изменения статуса
+                const statusButtonsDiv = document.createElement('div');
+                statusButtonsDiv.classList.add('status-buttons');
+
+                // Массив статусов для переключения
+                const statuses = ['new', 'in-progress', 'completed', 'postponed', 'cancelled'];
+
+                statuses.forEach(status => {
+                    if (status !== task.status) {
+                        const statusButton = document.createElement('button');
+                        statusButton.textContent = getStatusName(status);
+                        statusButton.style.fontSize = '10px';
+                        statusButton.addEventListener('click', () => changeTaskStatus(index, status));
+                        statusButtonsDiv.appendChild(statusButton);
+                    }
+                });
+
+                actionsCell.appendChild(statusButtonsDiv);
+
+                row.appendChild(actionsCell);
+
+                tasksTable.appendChild(row);
+            }
+
+            // Функция для отображения всех задач
+            function renderTasks() {
+                tasksTable.innerHTML = '';
+                tasks.forEach((task, index) => {
+                    addTaskToTable(task, index);
+                });
+            }
+
+            // Функция для получения названия статуса
+            function getStatusName(status) {
+                switch (status) {
+                    case 'new':
+                        return 'Новая';
+                    case 'in-progress':
+                        return 'В процессе';
+                    case 'completed':
+                        return 'Выполнена';
+                    case 'postponed':
+                        return 'Отложена';
+                    case 'cancelled':
+                        return 'Отменена';
+                    default:
+                        return '';
+                }
+            }
+
+            // Обработчик отправки формы
+            taskForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+
+                const title = taskForm['task-title'].value.trim();
+                const description = taskForm['task-desc'].value.trim();
+                const status = taskForm['task-status'].value;
+
+                if (title === '') {
+                    alert('Пожалуйста, введите название задачи.');
+                    return;
+                }
+
+                const task = {
+                    title,
+                    description,
+                    status
+                };
+
+                tasks.push(task);
+                renderTasks();
+                taskForm.reset();
+            });
+
+            // Функция для редактирования задачи
+            function editTask(index) {
+                const task = tasks[index];
+
+                const newTitle = prompt('Изменить название задачи:', task.title);
+                if (newTitle !== null) {
+                    task.title = newTitle.trim() !== '' ? newTitle : task.title;
+                }
+
+                const newDescription = prompt('Изменить описание задачи:', task.description);
+                if (newDescription !== null) {
+                    task.description = newDescription;
+                }
+
+                renderTasks();
+            }
+
+            // Функция для удаления задачи
+            function deleteTask(index) {
+                if (confirm('Вы действительно хотите удалить эту задачу?')) {
+                    tasks.splice(index, 1);
+                    renderTasks();
+                }
+            }
+
+            // Функция для изменения статуса задачи
+            function changeTaskStatus(index, newStatus) {
+                tasks[index].status = newStatus;
+                renderTasks();
+            }
+        });
+    </script>
+</body>
+</html>
